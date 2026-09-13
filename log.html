@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>調度日誌</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Cpath d='M8 22c3-8 7-12 16-13' stroke='%2310b981' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='11' cy='21' r='4' fill='none' stroke='%232563eb' stroke-width='2.5'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f1f5f9; --card:#fff; --ink:#0f172a; --ink-2:#475569; --ink-3:#94a3b8;
+  --line:#e2e8f0; --brand:#2563eb; --brand-d:#1d4ed8;
+  --eco:#059669; --eco-bg:#ecfdf5; --eco-line:#a7f3d0;
+  --cost:#dc2626; --cost-bg:#fef2f2;
+  --warn:#b45309; --warn-bg:#fffbeb; --warn-line:#fde68a;
+  --pad: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.hide{display:none !important}
+
+.topbar{
+  position:sticky; top:0; z-index:50; background:#0f172a; color:#fff;
+  padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;
+  display:flex; align-items:center; gap:10px;
+}
+.topbar h1{font-size:15px;font-weight:800;margin:0;flex:1}
+.topbar .sub{font-size:11px;color:#94a3b8;font-weight:500}
+.iconbtn{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:#1e293b;flex:none}
+.iconbtn svg{width:18px;height:18px;stroke:#e2e8f0;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+.wrap{padding:14px 14px calc(24px + var(--pad));max-width:640px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px}
+.tiny{font-size:11px}
+.muted{color:var(--ink-2)}
+
+/* 累計成效 */
+.hero{padding:16px;margin-bottom:12px;background:linear-gradient(170deg,#052e23,#064e3b);color:#fff;border-radius:18px}
+.hero .lbl{font-size:11px;font-weight:800;color:#6ee7b7;letter-spacing:.04em}
+.hero .big{font-size:40px;font-weight:900;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums;margin-top:4px}
+.hero .big small{font-size:16px;font-weight:800;margin-left:4px}
+.hero .cap{font-size:11.5px;color:#a7f3d0;margin-top:6px;line-height:1.5}
+.hero-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.16)}
+.hero-split div b{display:block;font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.15}
+.hero-split div span{font-size:10.5px;color:#a7f3d0;font-weight:700}
+
+.sec-h{font-size:13px;font-weight:900;margin:18px 4px 10px;display:flex;align-items:baseline;gap:8px}
+.sec-h .n{font-weight:700;color:var(--ink-3);font-size:11px}
+
+/* 碳排組成 */
+.calc{padding:15px;margin-bottom:12px}
+.bar-row{display:grid;grid-template-columns:80px 1fr 74px;align-items:center;gap:10px;margin-bottom:9px}
+.bar-row .k{font-size:11.5px;font-weight:700;color:var(--ink-2)}
+.bar-track{height:22px;background:#f1f5f9;border-radius:6px;position:relative;overflow:hidden}
+.bar-track i{position:absolute;top:0;bottom:0;border-radius:6px}
+.bar-row .v{text-align:right;font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
+.bar-row.net{border-top:1px dashed var(--line);padding-top:10px;margin-top:2px}
+.bar-row.net .k,.bar-row.net .v{font-size:14px;color:var(--ink)}
+.axis0{position:absolute;top:0;bottom:0;width:1.5px;background:var(--ink-3);opacity:.5}
+
+.assume{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.assume summary{font-size:12px;font-weight:800;color:var(--brand-d);cursor:pointer;list-style:none}
+.assume summary::-webkit-details-marker{display:none}
+.assume summary::before{content:"▸ ";font-size:10px}
+.assume[open] summary::before{content:"▾ "}
+.assume .body{font-size:11.5px;color:var(--ink-2);line-height:1.75;margin-top:9px}
+.assume table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}
+.assume td{padding:4px 0;border-bottom:1px solid var(--line)}
+.assume td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+.assume .formula{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-top:9px;
+  font-size:11px;line-height:1.7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto}
+
+.banner{display:flex;gap:9px;padding:11px 13px;border-radius:12px;font-size:12px;line-height:1.6;margin-bottom:12px;
+  background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn)}
+.banner svg{width:16px;height:16px;flex:none;margin-top:2px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.banner b{font-weight:800}
+
+/* 日誌 */
+.entry{padding:13px;margin-bottom:9px}
+.e-top{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:800}
+.pill-ok{background:var(--eco-bg);color:var(--eco);border:1px solid var(--eco-line)}
+.pill-gray{background:#f1f5f9;color:var(--ink-2);border:1px solid var(--line)}
+.e-time{font-size:11.5px;font-weight:800;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.e-title{font-size:15.5px;font-weight:900;letter-spacing:-.01em;line-height:1.3}
+.e-sub{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.e-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px;padding-top:10px;border-top:1px dashed var(--line)}
+.e-stats div b{display:block;font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.2}
+.e-stats div span{font-size:10px;color:var(--ink-3);font-weight:700}
+.e-route{margin-top:9px;font-size:11px;color:var(--ink-2);line-height:1.6}
+
+.mini{height:6px;border-radius:99px;background:#e2e8f0;overflow:hidden;margin-top:8px;display:flex}
+.mini i{display:block;height:100%}
+
+.empty{padding:34px 20px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.8}
+.empty b{display:block;color:var(--ink-2);font-size:14px;margin-bottom:6px}
+.btn{display:block;width:100%;min-height:46px;border-radius:12px;background:var(--brand);color:#fff;
+  font-size:14.5px;font-weight:900;margin-top:14px;display:flex;align-items:center;justify-content:center}
+.btn-ghost{background:#fff;color:var(--ink-2);border:1px solid var(--line)}
+.foot{margin-top:16px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:12px;
+  font-size:10.5px;color:var(--ink-3);line-height:1.75}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="iconbtn" onclick="goTasks()" aria-label="返回派工">
+    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <div style="min-width:0;flex:1">
+    <h1>調度日誌</h1>
+    <div class="sub" id="top-sub">載入中…</div>
+  </div>
+</div>
+
+<div class="wrap" id="root"></div>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="tasks.js"></script>
+<script>
+/* ============================================================================
+   設定區 —— 與 index.html 保持一致
+   ============================================================================ */
+const CONFIG = {
+  liffId:  '',
+  apiBase: '',
+};
+
+let DATA = null;
+let progress = {};
+let serverState = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n1 = v => (Math.round(v * 10) / 10).toLocaleString('zh-TW');
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+};
+
+function goTasks() {
+  location.href = 'index.html' + (location.search || '');
+}
+
+/* ============================================================================
+   啟動
+   ============================================================================ */
+(async function boot() {
+  // 與派工頁共用同一份本機狀態（同網域），完成的工單會自動出現在這裡
+  progress = store.get('yb_progress', {});
+
+  try {
+    DATA = window.__TASKS__ || await (await fetch('tasks.json', { cache: 'no-store' })).json();
+  } catch (e) {
+    $('root').innerHTML = '<div class="empty">找不到 tasks.json，請確認它和本頁放在同一層。</div>';
+    return;
+  }
+
+  if (CONFIG.liffId && window.liff) {
+    try { await liff.init({ liffId: CONFIG.liffId }); } catch (e) {}
+  }
+
+  if (CONFIG.apiBase) {
+    try {
+      const r = await fetch(CONFIG.apiBase.replace(/\/+$/, '') + '/state');
+      if (r.ok) serverState = await r.json();
+    } catch (e) {}
+  }
+
+  render();
+})();
+
+/* ============================================================================
+   計算
+   ============================================================================ */
+/** 已完成的工單（本機狀態優先，後端狀態補充） */
+function completedTasks() {
+  const doneIds = new Set();
+  Object.entries(progress).forEach(([id, st]) => { if (st && st.status === 'done') doneIds.add(id); });
+  (serverState?.taskStatus || []).forEach(r => { if (r.status === 'done') doneIds.add(r.taskId); });
+  return DATA.tasks.filter(t => doneIds.has(t.taskId));
+}
+
+function sumMileage(tasks) {
+  const acc = { savedKm: 0, routeKm: 0, baselineKm: 0, truckCo2Kg: 0,
+                savedCo2FromRouteKg: 0, avoidedCo2Kg: 0, netCo2Kg: 0, lostTrips: 0, stops: 0 };
+  tasks.forEach(t => {
+    const m = t.mileage || {};
+    acc.savedKm += m.savedKm || 0;
+    acc.routeKm += m.routeKm || 0;
+    acc.baselineKm += m.baselineKm || 0;
+    acc.truckCo2Kg += m.truckCo2Kg || 0;
+    acc.savedCo2FromRouteKg += m.savedCo2FromRouteKg || 0;
+    acc.avoidedCo2Kg += m.avoidedCo2Kg || 0;
+    acc.netCo2Kg += m.netCo2Kg || 0;
+    acc.lostTrips += t.estimatedLostTrips || 0;
+    acc.stops += (t.stops || []).length;
+  });
+  return acc;
+}
+
+/* ============================================================================
+   版面
+   ============================================================================ */
+function render() {
+  const done = completedTasks();
+  const all = DATA.tasks;
+  const sum = sumMileage(done);
+  const potential = sumMileage(all);
+  const E = DATA.meta.emission || {};
+
+  $('top-sub').textContent = `${DATA.meta.replayDate} 回放｜已完成 ${done.length} / ${all.length} 筆`;
+
+  $('root').innerHTML =
+    hero(sum, done.length, potential) +
+    (done.length ? carbonBreakdown(sum, E) : '') +
+    `<div class="sec-h">完成紀錄 <span class="n">${done.length} 筆</span></div>` +
+    (done.length ? done.map(entry).join('') : emptyState(potential)) +
+    footNote(E);
+}
+
+function hero(sum, count, potential) {
+  const has = count > 0;
+  return `
+    <section class="hero">
+      <div class="lbl">累計省下里程</div>
+      <div class="big">${has ? n1(sum.savedKm) : '0'}<small>公里</small></div>
+      <div class="cap">
+        ${has
+          ? `相較「每站各跑一趟」的做法，${count} 趟任務把 ${n1(sum.baselineKm)} 公里壓到 ${n1(sum.routeKm)} 公里。`
+          : `完成任務後，這裡會累計路線整併省下的里程。12 筆全部完成可省約 ${n1(potential.savedKm)} 公里。`}
+      </div>
+      <div class="hero-split">
+        <div>
+          <b>${has ? n1(sum.netCo2Kg) : '0'} kg</b>
+          <span>淨減碳（估算）</span>
+        </div>
+        <div>
+          <b>${has ? n1(sum.lostTrips) : '0'} 次</b>
+          <span>挽回租借（估算）</span>
+        </div>
+      </div>
+    </section>`;
+}
+
+function carbonBreakdown(sum, E) {
+  const items = [
+    { k: '路線整併', v: sum.savedCo2FromRouteKg, tone: 'var(--eco)', note: '少跑的里程' },
+    { k: '挽回旅次', v: sum.avoidedCo2Kg, tone: '#34d399', note: '情境估算' },
+    { k: '調度車排放', v: -sum.truckCo2Kg, tone: 'var(--cost)', note: '本趟成本' },
+  ];
+  const maxAbs = Math.max(...items.map(i => Math.abs(i.v)), Math.abs(sum.netCo2Kg), 0.001);
+  // 零點固定在中間偏左，正值往右、負值往左，讓「成本」與「效益」方向一目了然
+  const zero = 32;
+  const bar = v => {
+    const w = Math.abs(v) / maxAbs * (v >= 0 ? (100 - zero) : zero);
+    return v >= 0
+      ? `left:${zero}%;width:${w}%`
+      : `left:${zero - w}%;width:${w}%`;
+  };
+
+  return `
+    <section class="card calc">
+      <div class="sec-h" style="margin:0 0 12px">淨減碳怎麼來的 <span class="n">公斤 CO₂e</span></div>
+      ${items.map(i => `
+        <div class="bar-row">
+          <div class="k">${i.k}<br><span style="font-weight:600;color:var(--ink-3);font-size:10px">${i.note}</span></div>
+          <div class="bar-track">
+            <i style="${bar(i.v)};background:${i.tone}"></i>
+            <span class="axis0" style="left:${zero}%"></span>
+          </div>
+          <div class="v" style="color:${i.v >= 0 ? 'var(--eco)' : 'var(--cost)'}">${i.v >= 0 ? '+' : '−'}${n1(Math.abs(i.v))}</div>
+        </div>`).join('')}
+      <div class="bar-row net">
+        <div class="k">淨效益</div>
+        <div class="bar-track">
+          <i style="${bar(sum.netCo2Kg)};background:#0f172a"></i>
+          <span class="axis0" style="left:${zero}%"></span>
+        </div>
+        <div class="v">${sum.netCo2Kg >= 0 ? '+' : '−'}${n1(Math.abs(sum.netCo2Kg))}</div>
+      </div>
+
+      <details class="assume">
+        <summary>計算方式與假設值</summary>
+        <div class="body">
+          <b>里程</b>是可查證的：由站點座標算直線距離，再乘 ${E.routeFactor || 1.35} 的路網係數。
+          「節省」＝<b>每站各自從調度中心往返</b>（基準）減去<b>一趟串連多站</b>（實際）。
+          <div class="formula">
+            節省里程 = Σ 2×d(調度中心, 各站) − [調度中心→A→B→…→調度中心]
+          </div>
+          <b>碳排</b>是估算：把里程與挽回旅次乘上排放係數。下列係數為<b>假設值</b>，
+          正式對外請換成主管機關公告的排放係數。
+          <table>
+            <tr><td>調度車</td><td>${E.truckKgPerKm} kg/km</td></tr>
+            <tr><td>機車</td><td>${E.scooterKgPerKm} kg/km</td></tr>
+            <tr><td>自用小客車</td><td>${E.carKgPerKm} kg/km</td></tr>
+            <tr><td>單次平均騎乘距離</td><td>${E.avgTripKm} km</td></tr>
+            <tr><td>挽回旅次改騎機車比例</td><td>${Math.round((E.modalShift?.scooter || 0) * 100)}%</td></tr>
+            <tr><td>挽回旅次改開車比例</td><td>${Math.round((E.modalShift?.car || 0) * 100)}%</td></tr>
+          </table>
+          <div class="formula">
+            挽回旅次減碳 = 挽回次數 × ${E.avgTripKm}km × (${Math.round((E.modalShift?.scooter || 0) * 100)}%×${E.scooterKgPerKm} + ${Math.round((E.modalShift?.car || 0) * 100)}%×${E.carKgPerKm})
+          </div>
+          其餘挽回旅次視為步行、大眾運輸或不出行，<b>不計減碳</b>——這是刻意保守的算法。
+        </div>
+      </details>
+    </section>
+
+    <div class="banner">
+      <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      <div><b>里程是實算，碳排是估算。</b>「挽回旅次」那一項建立在運具替代假設上，
+      簡報時請說明為情境估算，不要當成實測減量。</div>
+    </div>`;
+}
+
+function entry(t) {
+  const m = t.mileage || {};
+  const st = progress[t.taskId] || {};
+  const reports = Object.values(st.stops || {});
+  const moved = reports.reduce((s, r) => s + (r.count || 0), 0);
+  const suggested = reports.reduce((s, r) => s + (r.suggested || 0), 0);
+  const delta = moved - suggested;
+  const finishedAt = st.finishedAt ? new Date(st.finishedAt) : null;
+
+  const savePct = m.baselineKm ? Math.round(m.savedKm / m.baselineKm * 100) : 0;
+
+  return `
+    <section class="card entry">
+      <div class="e-top">
+        <span class="e-time">${esc(t.slot)}</span>
+        <span class="pill pill-ok">已完成</span>
+        ${finishedAt ? `<span class="pill pill-gray">${finishedAt.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})} 回報</span>` : ''}
+      </div>
+      <div class="e-title">${esc(t.districts.join('、'))}　${t.stops.length} 站</div>
+      <div class="e-sub">首要站：${esc(t.criticalStation.name)}</div>
+
+      <div class="mini">
+        <i style="width:${100 - savePct}%;background:var(--brand)"></i>
+        <i style="width:${savePct}%;background:var(--eco)"></i>
+      </div>
+      <div class="e-route">實走 ${n1(m.routeKm)} km ・ 基準 ${n1(m.baselineKm)} km ・ <b style="color:var(--eco)">省 ${n1(m.savedKm)} km（${savePct}%）</b></div>
+
+      <div class="e-stats">
+        <div><b style="color:var(--eco)">${n1(m.netCo2Kg)}</b><span>淨減碳 kg</span></div>
+        <div><b>${n1(t.estimatedLostTrips)}</b><span>挽回租借 次</span></div>
+        <div><b>${moved || t.pickupTotal}</b><span>實際搬運 台</span></div>
+      </div>
+
+      ${reports.length ? `<div class="e-route">現場回報 ${reports.length} 站${delta ? `，實際較建議${delta > 0 ? '多' : '少'} ${Math.abs(delta)} 台` : '，與建議一致'}</div>` : ''}
+    </section>`;
+}
+
+function emptyState(potential) {
+  return `
+    <section class="card">
+      <div class="empty">
+        <b>還沒有完成的調度任務</b>
+        到派工頁接受任務、逐站回報並完成整趟後，<br>這裡就會累計省下的里程與減碳量。<br><br>
+        12 筆任務全部完成的話，預估可省 <b style="display:inline;color:var(--eco)">${n1(potential.savedKm)} 公里</b>、
+        淨減碳 <b style="display:inline;color:var(--eco)">${n1(potential.netCo2Kg)} 公斤</b>。
+        <button class="btn" onclick="goTasks()">前往派工頁</button>
+      </div>
+    </section>`;
+}
+
+function footNote(E) {
+  const m = DATA.meta;
+  return `
+    <div class="foot">
+      ${esc(m.sourceNote || '')}<br>
+      調度中心設定為「${esc(m.depot?.name || '—')}」，節省里程以此為基準計算。<br>
+      模型輸出為可借／可還比例，非機率。RUN ${esc(m.runId || '—')}。
+    </div>`;
+}
+</script>
+</body>
+</html>
